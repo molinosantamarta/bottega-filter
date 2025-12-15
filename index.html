@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Master – Cerca ordini</title>
+<title>Master – Cerca negli Ordini</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.25}
@@ -12,20 +12,25 @@ header{padding:16px 16px 8px;text-align:center}
 h1{margin:0 0 6px;font-size:20px;font-weight:900}
 .hint{font-size:14px;color:#555}
 main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
-.search{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+.search{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;justify-content:center}
 .input{flex:1;min-width:240px;padding:14px;border-radius:999px;border:1px solid var(--border);font-size:16px;background:#fff}
 .btn{padding:14px 18px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:900;cursor:pointer}
 .btn.secondary{background:#111}
+
 .filters{margin-top:14px;display:flex;flex-direction:column;gap:10px}
 .controlsRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+
 .seg{display:flex;gap:6px;padding:6px;background:var(--soft);border-radius:999px;width:fit-content;max-width:100%}
 .seg button{border:none;background:transparent;padding:10px 14px;border-radius:999px;font-weight:900;cursor:pointer;white-space:nowrap}
 .seg button.active{background:var(--highlight)}
-.filterRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+
 .tick{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
 .tick input{width:18px;height:18px;accent-color:var(--accent)}
+
 .status{margin-top:12px;font-size:12px;color:#555;text-align:center}
 .status .linklike{border:none;background:none;padding:0;margin-left:.25rem;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
+
 .results{margin-top:18px;display:flex;flex-direction:column;gap:10px}
 .order{display:flex;gap:12px;padding:12px;border-radius:26px;background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:var(--elev);cursor:pointer;transition:transform .06s ease;min-height:54px}
 .order:active{transform:scale(.995)}
@@ -40,7 +45,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
 /* Chip filtro (icona che si espande) */
 .chipbar{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid rgba(0,0,0,.06);background:#f7f7f8;border-radius:999px;box-sizing:border-box}
-#chipbar-filter{width:auto;cursor:pointer}
+#chipbar-filter{width:auto;cursor:pointer;user-select:none}
 #chipbar-filter .chip-inner{display:inline-flex;align-items:center;gap:8px;min-height:40px;max-height:40px;border-radius:999px}
 #chipbar-filter.compact .chip-inner{background:#f2f2f3;border:1px solid rgba(0,0,0,.06);border-radius:999px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;padding:0}
 #chipbar-filter.compact #filter-badge{opacity:0;width:0;pointer-events:none}
@@ -66,7 +71,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 </head>
 <body>
 <header>
-  <!-- Lottie searching -->
   <div id="lottie-search" aria-hidden="true" style="width:120px;height:120px;margin:0 auto 6px"></div>
   <h1>Cerca negli Ordini</h1>
   <div class="hint">Filtri stile stoccaggio + ricerca full-text (filtro Reparti con icona).</div>
@@ -76,7 +80,8 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   <div class="search">
     <input id="q" class="input" type="search" autocomplete="off" />
     <button id="go" class="btn" type="button">Cerca</button>
-    <button id="clear" class="btn secondary" type="button">Pulisci</button>  </div>
+    <button id="clear" class="btn secondary" type="button">Pulisci</button>
+  </div>
 
   <div class="filters">
     <div class="controlsRow">
@@ -145,7 +150,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 <script>
 (() => {
-  // Lottie init (searching)
+  // Lottie init
   try{
     lottie.loadAnimation({
       container: document.getElementById('lottie-search'),
@@ -312,6 +317,23 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     return esc(slice).replace(re, (m)=>`<mark>${esc(m)}</mark>`);
   }
 
+  function looksLikeHtml(s){
+    const t = (s||'').trim().slice(0,200).toLowerCase();
+    return t.startsWith('<!doctype') || t.startsWith('<html') || t.includes('<head') || t.includes('<body');
+  }
+
+  function extractJsonFromText(raw){
+    const text = (raw||'').trim();
+    if(!text) throw new Error('Risposta vuota');
+    if(text.startsWith('{') || text.startsWith('[')) return JSON.parse(text);
+    const s = text.search(/[\[{]/);
+    const eB = text.lastIndexOf('}');
+    const eA = text.lastIndexOf(']');
+    const e = Math.max(eB, eA);
+    if(s !== -1 && e > s) return JSON.parse(text.slice(s, e+1));
+    throw new Error('Non trovo JSON nella risposta');
+  }
+
   // ===== UI =====
   const out = document.getElementById('out');
   const status = document.getElementById('status');
@@ -322,7 +344,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   const tickIncludePastEl = document.getElementById('tickIncludePast');
   const tabs = Array.from(document.querySelectorAll('.seg button'));
 
-  
   // Modale dettaglio
   const modal = document.getElementById('modal');
   const mClose = document.getElementById('mClose');
@@ -366,7 +387,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       if(skipKeys.has(norm(keyStr))) continue;
 
       if(DETAIL_MODE === 'items'){
-        // mostra solo righe prodotto 1),2)... e NOTE
         const isItem = /^\s*\d+\)\s*/.test(keyStr);
         const isNotes = ['note sull\'ordine','note sull ordine','note','annotazioni','richieste speciali','richieste','allergie']
           .some(x => norm(keyStr).includes(norm(x)));
@@ -434,7 +454,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
   function openFilterModal(){
     PENDING_DEPTS = new Set(SELECTED_DEPTS);
-    // sync current checkboxes (se la lista è già renderizzata)
     Array.from(deptList.querySelectorAll('input[type="checkbox"]')).forEach(cb=>{
       cb.checked = PENDING_DEPTS.has(cb.value);
     });
@@ -478,10 +497,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       filterDateEl.min = '';
     }
   }
-    } else {
-      filterDateEl.min = '';
-    }
-  }
 
   function setPeriodMode(mode){
     PERIOD_MODE = mode;
@@ -494,23 +509,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   }
 
   tabs.forEach(b => b.addEventListener('click', ()=>setPeriodMode(b.dataset.mode)));
-
-  function looksLikeHtml(s){
-    const t = (s||'').trim().slice(0,200).toLowerCase();
-    return t.startsWith('<!doctype') || t.startsWith('<html') || t.includes('<head') || t.includes('<body');
-  }
-
-  function extractJsonFromText(raw){
-    const text = (raw||'').trim();
-    if(!text) throw new Error('Risposta vuota');
-    if(text.startsWith('{') || text.startsWith('[')) return JSON.parse(text);
-    const s = text.search(/[\[{]/);
-    const eB = text.lastIndexOf('}');
-    const eA = text.lastIndexOf(']');
-    const e = Math.max(eB, eA);
-    if(s !== -1 && e > s) return JSON.parse(text.slice(s, e+1));
-    throw new Error('Non trovo JSON nella risposta');
-  }
 
   function refreshDeptOptions(){
     const set = new Set();
@@ -539,19 +537,9 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
         headers: { 'Accept': 'application/json, text/plain, */*' }
       });
       raw = await res.text();
-    } catch (e){
+    } catch (_e){
       throw new Error('Fetch fallita (rete/CORS).');
     }
-
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
-    const dbg = {
-      url,
-      ok: res.ok,
-      status: res.status,
-      statusText: res.statusText,
-      contentType: ct,
-      sample: (raw||'').slice(0, 800)
-    };
 
     if(looksLikeHtml(raw)){
       throw new Error('L’API sta tornando HTML (probabile permessi/deploy).');
@@ -564,7 +552,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     let data;
     try{
       data = extractJsonFromText(raw);
-    } catch (e){
+    } catch (_e){
       throw new Error('Parse JSON fallita.');
     }
 
@@ -591,9 +579,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
     status.innerHTML = `Ordini caricati: <b>${DATA.length}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
     const btn = document.getElementById('refreshNow');
-    if(btn) btn.onclick = async ()=>{ try{ await fetchAPI(); runSearch(); } catch(e){ status.textContent = 'Errore: ' + (e.message||e); } };
-
-    
+    if(btn) btn.onclick = async ()=>{
+      try{ await fetchAPI(); runSearch(); }
+      catch(e){ status.textContent = 'Errore: ' + (e.message||e); }
+    };
   }
 
   function applyPeriodAndDeptFilters(){
@@ -692,7 +681,19 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     });
   }
 
-  
+  // ===== Minimal self-tests (non bloccanti) =====
+  function runSelfTests(){
+    const ok = (name, cond) => ({ name, ok: !!cond });
+    const t = todayLocal();
+    return [
+      ok('truthy si', truthy('si') === true),
+      ok('truthy no', truthy('no') === false),
+      ok('ymd format', /^\d{4}-\d{2}-\d{2}$/.test(ymd(t))),
+      ok('parseAnyDate dd/mm/yyyy', !!parseAnyDate('15/12/2025')),
+      ok('parseAnyDate yyyy-mm-dd', !!parseAnyDate('2025-12-15')),
+    ];
+  }
+
   // ===== Events =====
   document.getElementById('go').addEventListener('click', runSearch);
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
@@ -704,10 +705,13 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   });
 
   filterDateEl.addEventListener('change', runSearch);
-  tickIncludePastEl.addEventListener('change', ()=>{ enforceIncludePastConstraints(); runSearch(); }); runSearch(); });
+  tickIncludePastEl.addEventListener('change', ()=>{ enforceIncludePastConstraints(); runSearch(); });
 
   // ===== Boot =====
   (async function init(){
+    // self tests (solo console)
+    try{ console.table(runSelfTests()); }catch(_){/* ignore */}
+
     try{
       await fetchAPI();
       tickIncludePastEl.checked = false;
