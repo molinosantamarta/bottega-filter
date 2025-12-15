@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.25}
-:root{--accent:#0a84ff;--highlight:#ffd60a;--border:#ddd;--soft:#f4f4f6;--success:#22c55e;--radius:18px}
+:root{--accent:#0a84ff;--border:#ddd;--soft:#f4f4f6;--highlight:#ffd60a;--radius:22px;--elev:0 10px 24px rgba(0,0,0,.15)}
 header{padding:16px 16px 8px;text-align:center}
 h1{margin:0 0 6px;font-size:20px;font-weight:900}
 .hint{font-size:14px;color:#555}
@@ -26,12 +26,13 @@ main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
 .status{margin-top:12px;font-size:12px;color:#555;text-align:center}
 .status .linklike{border:none;background:none;padding:0;margin-left:.25rem;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
 .results{margin-top:18px;display:flex;flex-direction:column;gap:10px}
-.order{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
-.badge{min-width:52px;height:34px;background:var(--highlight);border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.order{display:flex;gap:12px;padding:12px;border-radius:26px;background:#fff;border:1px solid rgba(0,0,0,.08);box-shadow:var(--elev);cursor:pointer;transition:transform .06s ease;min-height:54px}
+.order:active{transform:scale(.995)}
+.badge{min-width:46px;height:32px;background:var(--highlight);border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#000}
 .name{font-weight:900}
 .sub{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
-.pill{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--soft)}
-.pill.zone{background:var(--success);color:#fff}
+.pill{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--soft);font-weight:700}
+.pill.dept{background:#111;color:#fff}
 .snippet{margin-top:8px;font-size:13px;color:#222;background:#fafafa;border:1px solid #eee;border-radius:12px;padding:8px 10px}
 mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-weight:900}
 .empty{padding:16px;border:1px dashed var(--border);border-radius:12px;color:#666;text-align:center}
@@ -39,6 +40,19 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 /* Debug panel */
 .debug{margin-top:12px;padding:12px;border:1px solid #eee;border-radius:12px;background:#fafafa;color:#222;font-size:12px;display:none;text-align:left}
 .debug code{white-space:pre-wrap;word-break:break-word}
+
+/* Chip filtro (icona che si espande) */
+.chipbar{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid rgba(0,0,0,.06);background:#f7f7f8;border-radius:999px;box-sizing:border-box}
+#chipbar-filter{width:auto;cursor:pointer}
+#chipbar-filter .chip-inner{display:inline-flex;align-items:center;gap:8px;min-height:40px;max-height:40px;border-radius:999px}
+#chipbar-filter.compact .chip-inner{background:#f2f2f3;border:1px solid rgba(0,0,0,.06);border-radius:999px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;padding:0}
+#chipbar-filter.compact #filter-badge{opacity:0;width:0;pointer-events:none}
+#chipbar-filter.compact svg{color:#111;width:18px;height:18px}
+#chipbar-filter.active{display:inline-flex;background:#f7f7f8;border-color:rgba(0,0,0,.06);align-self:center;width:auto}
+#chipbar-filter.active .chip-inner{background:#000;color:#fff;border:1px solid #000;padding:0 8px;gap:4px;justify-content:center;align-items:center}
+#chipbar-filter.active .chip-inner svg{display:inline-block;width:18px;height:18px;color:var(--highlight);margin-right:3px}
+.count-badge{display:none;align-items:center;justify-content:center;padding:0 12px;height:28px;background:var(--highlight);color:#000;border-radius:999px;font-weight:900;font-size:14px}
+#chipbar-filter.active #filter-badge{display:inline-flex}
 
 /* MODAL */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:2147483647}
@@ -56,7 +70,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 <body>
 <header>
   <h1>Cerca ordini</h1>
-  <div class="hint">Filtri stile stoccaggio + ricerca full-text.</div>
+  <div class="hint">Filtri stile stoccaggio + ricerca full‑text (filtro Reparti con icona).</div>
 </header>
 
 <main>
@@ -77,9 +91,19 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
     <div class="filterRow">
       <input type="date" id="filterDate" class="input" style="display:none; max-width:260px;">
-      <select id="filterZone" class="input" style="max-width:260px;">
-        <option value="">Tutte le zone</option>
-      </select>
+
+      <div class="chipbar compact" id="chipbar-filter" title="Filtro reparti" aria-haspopup="dialog" aria-expanded="false">
+        <div class="chip-inner">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <g fill="currentColor">
+              <rect x="3" y="6" rx="1.5" ry="1.5" width="18" height="2"></rect>
+              <rect x="6" y="11" rx="1.5" ry="1.5" width="12" height="2"></rect>
+              <rect x="9" y="16" rx="1.5" ry="1.5" width="6" height="2"></rect>
+            </g>
+          </svg>
+          <span id="filter-badge" class="count-badge"></span>
+        </div>
+      </div>
 
       <label class="tick" title="Nasconde ieri e date passate">
         <input type="checkbox" id="tickFutureOnly" checked>
@@ -96,6 +120,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   </div>
 </main>
 
+<!-- Modale dettaglio ordine -->
 <div id="modal" class="modal" aria-hidden="true" role="dialog">
   <div class="sheet">
     <button class="close" id="mClose" type="button">Chiudi</button>
@@ -105,14 +130,30 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   </div>
 </div>
 
+<!-- Modale filtri reparti -->
+<div id="filterModal" class="modal" aria-hidden="true" role="dialog">
+  <div class="sheet" style="max-width:min(560px,92vw);max-height:80vh;margin:10vh auto;border-radius:var(--radius);overflow:hidden;border:1px solid rgba(0,0,0,.08);box-shadow:var(--elev)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 12px;border-bottom:1px solid #ececec;position:sticky;top:0;background:#fff;z-index:1">
+      <div style="font-weight:900;font-size:18px">Filtra reparti</div>
+      <button class="close" id="fClose" type="button">Chiudi</button>
+    </div>
+    <div style="padding:14px 16px 18px;overflow:auto">
+      <div id="deptList" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button id="fClear" class="btn secondary" type="button" style="flex:1;min-width:160px">Azzera</button>
+        <button id="fApply" class="btn" type="button" style="flex:1;min-width:160px">Applica</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-(function(){
+(() => {
   // ====== CONFIG ======
-  // Se "non funziona", al 90% è uno di questi:
-  // 1) Web App Apps Script non è "Chiunque" (o almeno "Chiunque con link")
-  // 2) URL è quello di EDITOR o di "exec" non della DEPLOY corretta
-  // 3) doGet restituisce HTML o redirect invece che JSON
   const API_URL = 'https://script.google.com/macros/s/AKfycbzp_2RNQO9ROQkpcGebBpZ9P_MyZEmxkqLh5G-ODe4Yo2x9E0aRbEQIbmofaxhod9VGFA/exec';
+
+  // Modal dettaglio: "all" = tutte le colonne, "items" = solo righe prodotto + note
+  const DETAIL_MODE = 'all';
 
   // ===== Utils =====
   const esc = (s) => String(s ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]||m));
@@ -125,6 +166,16 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   const pad2 = n => String(n).padStart(2,'0');
   const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
   const ddmmyyyy = d => `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`;
+
+  const truthy = (v) => {
+    if(v == null) return false;
+    const s = norm(String(v));
+    if(!s) return false;
+    if(['0','no','n','false','falso'].includes(s)) return false;
+    if(['1','si','sì','yes','y','true','ok'].includes(s)) return true;
+    const n = Number(String(v).replace(',', '.'));
+    return Number.isFinite(n) && n > 0;
+  };
 
   function todayLocal(){ const d=new Date(); d.setHours(12,0,0,0); return d; }
 
@@ -156,7 +207,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       const nameKey = pickKey(r,['NOME CLIENTE','NOME','CLIENTE']);
       const dateKeyRaw = pickKey(r,['DATA ORDINE','DATA','GIORNO','DATA RITIRO','RITIRO']);
       const timeKey = pickKey(r,['ORA','ORARIO']);
-      const zoneKey = pickKey(r,['ZONA STOCCAGGIO','ZONA','STOCCAGGIO','UBICAZIONE']);
       const ordKey  = pickKey(r,['NUMERO ORDINE','ORDINE','N° ORDINE','ORD']);
 
       const name = nameKey ? String(r[nameKey]||'').trim() : '';
@@ -164,7 +214,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
       const d = dateKeyRaw ? parseAnyDate(r[dateKeyRaw]) : null;
       const time = timeKey ? String(r[timeKey]||'').trim() : '';
-      const zone = zoneKey ? String(r[zoneKey]||'').trim() : '';
       const ordRaw = ordKey ? r[ordKey] : r.ord;
       const ord = (ordRaw!=null && ordRaw!=='') ? Number(ordRaw) : null;
 
@@ -175,7 +224,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
         dateKey: d ? ymd(d) : null,
         dateText: d ? ddmmyyyy(d) : '',
         time,
-        zone,
         src: r
       });
     }
@@ -188,7 +236,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     parts.push(row.name||'');
     parts.push(row.dateText||'');
     parts.push(row.time||'');
-    parts.push(row.zone||'');
     for(const [k,v] of Object.entries(row.src||{})){
       parts.push(String(k));
       if(v==null) continue;
@@ -214,6 +261,37 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     return lines.join(' • ').trim();
   }
 
+  function extractDepts(row){
+    const src = row.src || {};
+
+    const repKey = pickKey(src, ['REPARTI','REPARTO','REPARTI RICHIESTI','REPARTI ORDINE','REPARTI (AUTO)','REPARTI (CALCOLATI)']);
+    if(repKey){
+      const raw0 = String(src[repKey]||'').trim();
+      if(raw0){
+        const raw = raw0.replace(/\n/g, ',');
+        const parts = raw.split(/[,;|]+/g).map(s=>s.trim()).filter(Boolean);
+        return Array.from(new Set(parts));
+      }
+    }
+
+    const KNOWN = [
+      'Carne','Frutta e Verdura','Frutta','Verdura','Pesce','Gastronomia','Panetteria','Salumi','Formaggi',
+      'Dolci','Avicoli','Uova','Latte','Vini','Bevande','Altro'
+    ];
+
+    const found = [];
+    for(const [k,v] of Object.entries(src)){
+      const key = String(k||'').trim();
+      if(!key) continue;
+      const hit = KNOWN.find(d => norm(key) === norm(d) || norm(key).includes(norm(d)));
+      if(!hit) continue;
+      if(!truthy(v)) continue;
+      found.push(hit);
+    }
+
+    return Array.from(new Set(found));
+  }
+
   function highlightSnippet(text, qNorm){
     if(!qNorm) return '';
     const raw = String(text||'');
@@ -232,33 +310,45 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   const status = document.getElementById('status');
   const qEl = document.getElementById('q');
   const filterDateEl = document.getElementById('filterDate');
-  const filterZoneEl = document.getElementById('filterZone');
+  const chipFilterEl = document.getElementById('chipbar-filter');
+  const filterBadgeEl = document.getElementById('filter-badge');
   const tickFutureOnlyEl = document.getElementById('tickFutureOnly');
   const tabs = Array.from(document.querySelectorAll('.seg button'));
 
+  // Debug
   const debugBox = document.getElementById('debug');
   const debugText = document.getElementById('debugText');
   document.getElementById('toggleDebug').addEventListener('click', ()=>{
     debugBox.style.display = (debugBox.style.display === 'none' || !debugBox.style.display) ? 'block' : 'none';
   });
 
-  let PERIOD_MODE = 'next';
-  let DATA = [];
-
-  // Modal
+  // Modale dettaglio
   const modal = document.getElementById('modal');
   const mClose = document.getElementById('mClose');
   const mTitle = document.getElementById('mTitle');
   const mSub = document.getElementById('mSub');
   const mTable = document.getElementById('mTable');
 
+  // Modale filtri
+  const filterModal = document.getElementById('filterModal');
+  const deptList = document.getElementById('deptList');
+  const fClose = document.getElementById('fClose');
+  const fApply = document.getElementById('fApply');
+  const fClear = document.getElementById('fClear');
+
+  let PERIOD_MODE = 'next';
+  let DATA = [];
+  let SELECTED_DEPTS = new Set();
+  let PENDING_DEPTS = new Set();
+
+  // ===== Modal helpers =====
   function openModal(row, qNorm){
     mTitle.textContent = row.name || 'Dettaglio ordine';
     mSub.textContent = [
       row.ord ? `Ordine #${row.ord}` : null,
       row.dateText || null,
       row.time || null,
-      row.zone ? `Zona: ${row.zone}` : null
+      (row.__depts && row.__depts.length) ? `Reparti: ${row.__depts.join(', ')}` : null
     ].filter(Boolean).join(' • ');
 
     const entries = Object.entries(row.src||{});
@@ -267,19 +357,29 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       'nome','nome cliente','cliente','data','giorno','data ordine','data ritiro','ritiro','ora','orario'
     ].map(k=>norm(k)));
 
-    let seenItemsStart=false;
-    const rowsHtml = entries
-      .filter(([k,_])=>!skipKeys.has(norm(String(k))))
-      .map(([k,v])=>{
-        const keyStr = String(k).trim();
-        const valStr = (v==null)? '' : String(v).trim();
-        if(/^\s*1\)\s*/i.test(keyStr)) seenItemsStart=true;
-        const shouldHL = seenItemsStart && valStr!=='' && valStr!=='0';
-        const matchHL = qNorm && (norm(keyStr+' '+valStr).includes(qNorm));
-        return `<tr class="${(shouldHL||matchHL)?'hl':''}"><th>${esc(keyStr)}</th><td>${esc(valStr)}</td></tr>`;
-      }).join('');
+    const rows = [];
+    let seenItemsStart = false;
 
-    mTable.innerHTML = rowsHtml || `<tr><td>Nessun dettaglio</td></tr>`;
+    for(const [k,v] of entries){
+      const keyStr = String(k).trim();
+      if(skipKeys.has(norm(keyStr))) continue;
+
+      if(DETAIL_MODE === 'items'){
+        // mostra solo righe prodotto 1),2)... e NOTE
+        const isItem = /^\s*\d+\)\s*/.test(keyStr);
+        const isNotes = ['note sull\'ordine','note sull ordine','note','annotazioni','richieste speciali','richieste','allergie']
+          .some(x => norm(keyStr).includes(norm(x)));
+        if(!isItem && !isNotes) continue;
+      }
+
+      const valStr = (v==null)? '' : String(v).trim();
+      if(/^\s*1\)\s*/i.test(keyStr)) seenItemsStart=true;
+      const shouldHL = seenItemsStart && valStr!=='' && valStr!=='0';
+      const matchHL = qNorm && norm(keyStr+' '+valStr).includes(qNorm);
+      rows.push(`<tr class="${(shouldHL||matchHL)?'hl':''}"><th>${esc(keyStr)}</th><td>${esc(valStr)}</td></tr>`);
+    }
+
+    mTable.innerHTML = rows.join('') || `<tr><td>Nessun dettaglio</td></tr>`;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
   }
@@ -293,20 +393,78 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('open')) closeModal(); });
 
-  function refreshZoneOptions(){
-    const current = filterZoneEl.value || '';
-    const zones = Array.from(new Set(DATA.map(r => (r.zone||'').trim()).filter(Boolean)))
-      .sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
-
-    filterZoneEl.innerHTML = `<option value="">Tutte le zone</option>` +
-      zones.map(z => `<option value="${esc(z)}">${esc(z)}</option>`).join('');
-
-    if(current){
-      const opt = Array.from(filterZoneEl.options).find(o => norm(o.value) === norm(current));
-      if(opt) filterZoneEl.value = opt.value;
+  // ===== Dept filter chip =====
+  function syncFilterChip(){
+    const n = SELECTED_DEPTS.size;
+    if(n <= 0){
+      chipFilterEl.classList.add('compact');
+      chipFilterEl.classList.remove('active');
+      filterBadgeEl.textContent = '';
+      return;
     }
+    chipFilterEl.classList.remove('compact');
+    chipFilterEl.classList.add('active');
+    filterBadgeEl.textContent = String(n);
   }
 
+  function renderDeptModal(depts){
+    if(!depts.length){
+      deptList.innerHTML = '<div class="empty">Nessun reparto rilevato nei dati.</div>';
+      return;
+    }
+
+    deptList.innerHTML = depts.map(d=>{
+      const id = 'dep-' + norm(d).replace(/[^a-z0-9]+/g,'-');
+      return `
+        <label for="${esc(id)}" style="display:flex;align-items:center;gap:10px;padding:6px 2px;cursor:pointer">
+          <input id="${esc(id)}" type="checkbox" value="${esc(d)}" style="width:20px;height:20px;accent-color:var(--accent)" />
+          <span style="font-weight:800">${esc(d)}</span>
+        </label>`;
+    }).join('');
+
+    Array.from(deptList.querySelectorAll('input[type="checkbox"]')).forEach(cb=>{
+      cb.checked = PENDING_DEPTS.has(cb.value);
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) PENDING_DEPTS.add(cb.value);
+        else PENDING_DEPTS.delete(cb.value);
+      });
+    });
+  }
+
+  function openFilterModal(){
+    PENDING_DEPTS = new Set(SELECTED_DEPTS);
+    // sync current checkboxes (se la lista è già renderizzata)
+    Array.from(deptList.querySelectorAll('input[type="checkbox"]')).forEach(cb=>{
+      cb.checked = PENDING_DEPTS.has(cb.value);
+    });
+    filterModal.classList.add('open');
+    filterModal.setAttribute('aria-hidden','false');
+    chipFilterEl.setAttribute('aria-expanded','true');
+  }
+
+  function closeFilterModal(){
+    filterModal.classList.remove('open');
+    filterModal.setAttribute('aria-hidden','true');
+    chipFilterEl.setAttribute('aria-expanded','false');
+  }
+
+  chipFilterEl.addEventListener('click', openFilterModal);
+  fClose.addEventListener('click', closeFilterModal);
+  filterModal.addEventListener('click', (e)=>{ if(e.target === filterModal) closeFilterModal(); });
+
+  fClear.addEventListener('click', ()=>{
+    PENDING_DEPTS = new Set();
+    Array.from(deptList.querySelectorAll('input[type="checkbox"]')).forEach(cb=>cb.checked=false);
+  });
+
+  fApply.addEventListener('click', ()=>{
+    SELECTED_DEPTS = new Set(PENDING_DEPTS);
+    syncFilterChip();
+    closeFilterModal();
+    runSearch();
+  });
+
+  // ===== Period logic =====
   function enforceFutureOnlyConstraints(){
     const todayKey = ymd(todayLocal());
     if(tickFutureOnlyEl.checked){
@@ -314,7 +472,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       if(PERIOD_MODE === 'date' && filterDateEl.value && filterDateEl.value < todayKey){
         filterDateEl.value = todayKey;
       }
-    }else{
+    } else {
       filterDateEl.min = '';
     }
   }
@@ -328,9 +486,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     enforceFutureOnlyConstraints();
     runSearch();
   }
+
   tabs.forEach(b => b.addEventListener('click', ()=>setPeriodMode(b.dataset.mode)));
 
-  // ===== Robust JSON parsing + debug =====
+  // ===== Debug helpers =====
   function writeDebug(obj){
     debugText.textContent = JSON.stringify(obj, null, 2);
   }
@@ -344,13 +503,24 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     const text = (raw||'').trim();
     if(!text) throw new Error('Risposta vuota');
     if(text.startsWith('{') || text.startsWith('[')) return JSON.parse(text);
-    // alcuni proxy / GAS possono aggiungere testo prima del JSON
     const s = text.search(/[\[{]/);
     const eB = text.lastIndexOf('}');
     const eA = text.lastIndexOf(']');
     const e = Math.max(eB, eA);
     if(s !== -1 && e > s) return JSON.parse(text.slice(s, e+1));
     throw new Error('Non trovo JSON nella risposta');
+  }
+
+  function refreshDeptOptions(){
+    const set = new Set();
+    for(const r of DATA){
+      for(const d of (r.__depts || [])) set.add(d);
+    }
+    const depts = Array.from(set).sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+    SELECTED_DEPTS = new Set(Array.from(SELECTED_DEPTS).filter(d => set.has(d)));
+    PENDING_DEPTS = new Set(SELECTED_DEPTS);
+    syncFilterChip();
+    renderDeptModal(depts);
   }
 
   async function fetchAPI(){
@@ -384,12 +554,12 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     };
 
     if(looksLikeHtml(raw)){
-      writeDebug({ ...dbg, hint: 'La risposta sembra HTML (permessi o deploy non pubblico). Verifica: Apps Script → Deploy → Web app → Accesso: Chiunque con link / Chiunque.' });
+      writeDebug({ ...dbg, hint: 'La risposta sembra HTML (permessi/deploy). Apps Script → Deploy → Web app → Accesso: Chiunque con link / Chiunque.' });
       throw new Error('L’API sta tornando HTML (probabile permessi/deploy).');
     }
 
     if(!res.ok){
-      writeDebug({ ...dbg, hint: 'HTTP non OK. Se 302/403/401: permessi. Se 404: URL sbagliato. Se 500: errore doGet.' });
+      writeDebug({ ...dbg, hint: 'HTTP non OK. 302/403/401: permessi. 404: URL sbagliato. 500: errore doGet.' });
       throw new Error(`HTTP ${res.status}: risposta non valida`);
     }
 
@@ -397,11 +567,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     try{
       data = extractJsonFromText(raw);
     } catch (e){
-      writeDebug({ ...dbg, parseError: String(e), hint: 'JSON non parsabile. Controlla cosa stampa doGet (deve essere JSON con Content-Type application/json).' });
+      writeDebug({ ...dbg, parseError: String(e), hint: 'JSON non parsabile. doGet deve restituire JSON (Content-Type application/json).' });
       throw new Error('Parse JSON fallita. Apri Debug.');
     }
 
-    // normalizzazione shape
     let rows=[];
     if(Array.isArray(data)) rows=data;
     else if(Array.isArray(data.rows)) rows=data.rows;
@@ -417,8 +586,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       r.__blobAll = buildSearchBlob(r);
       r.__notesRaw = extractNotes(r);
       r.__itemsRaw = extractItemsText(r);
+      r.__depts = extractDepts(r);
     }
-    refreshZoneOptions();
+
+    refreshDeptOptions();
     enforceFutureOnlyConstraints();
 
     status.innerHTML = `Ordini caricati: <b>${DATA.length}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
@@ -428,13 +599,12 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     writeDebug({ ...dbg, parsed: true, rowsDetected: rows.length, mappedOrders: DATA.length });
   }
 
-  function applyPeriodAndZoneFilters(){
+  function applyPeriodAndDeptFilters(){
     const t = todayLocal();
     const todayKey = ymd(t);
     const tom = new Date(t); tom.setDate(t.getDate()+1);
     const tomorrowKey = ymd(tom);
 
-    const selectedZone = norm(filterZoneEl.value || '');
     let pool = DATA;
 
     if(tickFutureOnlyEl.checked){
@@ -452,20 +622,20 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       if(sel) pool = pool.filter(r => r.dateKey === sel);
     }
 
-    if(selectedZone){
-      pool = pool.filter(r => norm(r.zone).includes(selectedZone));
+    if(SELECTED_DEPTS.size){
+      const selectedNorm = new Set(Array.from(SELECTED_DEPTS).map(d=>norm(d)));
+      pool = pool.filter(r => (r.__depts||[]).some(d => selectedNorm.has(norm(d))));
     }
 
-    return { pool, todayKey, tomorrowKey };
+    return pool;
   }
 
   function runSearch(){
     const q = norm(qEl.value);
-    const { pool } = applyPeriodAndZoneFilters();
-
+    const pool = applyPeriodAndDeptFilters();
     const hits = q ? pool.filter(r => r.__blobAll && r.__blobAll.includes(q)) : pool.slice();
 
-    if(hits.length===0){
+    if(hits.length === 0){
       out.innerHTML = `<div class="empty">Nessun ordine nel periodo selezionato.</div>`;
       return;
     }
@@ -484,10 +654,14 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
     out.innerHTML = hits.map(r=>{
       const num = r.ord!=null ? r.ord : '—';
+      const deptPills = (r.__depts||[]).slice(0,2).map(d => `<span class="pill dept">${esc(d)}</span>`);
+      const extra = (r.__depts||[]).length > 2 ? `<span class="pill">+${(r.__depts||[]).length-2}</span>` : '';
+
       const pills = [
         r.dateText ? `<span class="pill">${esc(r.dateText)}</span>` : '',
         r.time ? `<span class="pill">${esc(r.time)}</span>` : '',
-        r.zone ? `<span class="pill zone">${esc(r.zone)}</span>` : ''
+        ...deptPills,
+        extra
       ].filter(Boolean).join('');
 
       let snippet = '';
@@ -520,7 +694,44 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     });
   }
 
-  // Events
+  // ===== Minimal self-tests (run once) =====
+  function runSelfTests(){
+    const tests = [];
+    const assert = (name, cond, extra) => tests.push({ name, ok: !!cond, extra: extra ?? null });
+
+    // parseAnyDate
+    const d1 = parseAnyDate('15/12/2025');
+    assert('parseAnyDate dd/mm/yyyy', d1 && ymd(d1)==='2025-12-15', d1 ? ymd(d1) : null);
+    const d2 = parseAnyDate('2025-12-15');
+    assert('parseAnyDate yyyy-mm-dd', d2 && ymd(d2)==='2025-12-15', d2 ? ymd(d2) : null);
+
+    // extractJsonFromText
+    try{
+      const j = extractJsonFromText('  {"a":1}  ');
+      assert('extractJsonFromText basic', j && j.a===1, j);
+    }catch(e){
+      assert('extractJsonFromText basic', false, String(e));
+    }
+
+    // truthy + extractDepts
+    assert('truthy("SI")', truthy('SI') === true);
+    assert('truthy("si")', truthy('si') === true);
+    assert('truthy("no")', truthy('no') === false);
+    assert('truthy(0)', truthy(0) === false);
+    assert('truthy(2)', truthy(2) === true);
+
+    const sampleRow1 = { src: { REPARTI: 'Carne, Frutta e Verdura; Pesce' } };
+    const deps1 = extractDepts(sampleRow1);
+    assert('extractDepts from REPARTI', deps1.length===3 && deps1.includes('Carne') && deps1.includes('Pesce'), deps1);
+
+    const sampleRow2 = { src: { Carne: 1, 'Frutta e Verdura': 'si', Pesce: 0 } };
+    const deps2 = extractDepts(sampleRow2);
+    assert('extractDepts from dept columns (si)', deps2.includes('Carne') && deps2.includes('Frutta e Verdura') && !deps2.includes('Pesce'), deps2);
+
+    return tests;
+  }
+
+  // ===== Events =====
   document.getElementById('go').addEventListener('click', runSearch);
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
 
@@ -530,16 +741,26 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     qEl.focus();
   });
 
-  filterZoneEl.addEventListener('change', runSearch);
   filterDateEl.addEventListener('change', runSearch);
   tickFutureOnlyEl.addEventListener('change', ()=>{ enforceFutureOnlyConstraints(); runSearch(); });
 
-  // Boot
+  // ===== Boot =====
   (async function init(){
+    // Self-tests -> merge into debug output (non invasivo)
+    const tests = runSelfTests();
+    try{
+      const prev = debugText.textContent ? JSON.parse(debugText.textContent) : null;
+      if(prev && typeof prev === 'object') writeDebug({ ...prev, selfTests: tests });
+      else writeDebug({ selfTests: tests });
+    }catch(_){
+      writeDebug({ selfTests: tests });
+    }
+
     try{
       await fetchAPI();
       tickFutureOnlyEl.checked = true;
       setPeriodMode('next');
+      syncFilterChip();
       runSearch();
     } catch (err){
       status.textContent = 'Errore nel caricamento dati: ' + (err.message||err);
