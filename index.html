@@ -679,14 +679,33 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     }
 
     hits.sort((a,b)=>{
+      // Ordine risultati:
+      // - Se "Includi ordini passati" è OFF (default): dal più vicino (oggi) al più lontano (futuro)
+      // - Se ON: per vicinanza a oggi (|diff giorni| crescente), poi per data (passato->futuro), poi per numero ordine
+      const t = todayLocal();
+      const ta = a.dateObj ? Math.round((a.dateObj - t) / 86400000) : 999999;
+      const tb = b.dateObj ? Math.round((b.dateObj - t) / 86400000) : 999999;
+
+      if(!tickIncludePastEl.checked){
+        // oggi (0) prima, poi futuro (1,2,3...)
+        if(ta !== tb) return ta - tb;
+      } else {
+        // vicinanza assoluta a oggi
+        const aa = Math.abs(ta);
+        const bb = Math.abs(tb);
+        if(aa !== bb) return aa - bb;
+        // a parità di distanza: passato prima del futuro (es. ieri prima di domani)
+        if(ta !== tb) return ta - tb;
+      }
+
+      // Bonus: se c'è una query, spingi in alto chi matcha nelle NOTE
       if(q){
         const an = norm(a.__notesRaw||'').includes(q) ? 1 : 0;
         const bn = norm(b.__notesRaw||'').includes(q) ? 1 : 0;
         if(an!==bn) return bn-an;
       }
-      const ad = a.dateKey || '';
-      const bd = b.dateKey || '';
-      if(ad!==bd) return ad.localeCompare(bd);
+
+      // a parità: più recente numero ordine prima
       return (b.ord||0) - (a.ord||0);
     });
 
