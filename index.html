@@ -17,7 +17,8 @@ main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
 .btn{padding:14px 18px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:900;cursor:pointer}
 .btn.secondary{background:#111}
 .filters{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-.seg{display:flex;gap:6px;padding:6px;background:var(--soft);border-radius:999px;width:fit-content;max-width:100%;margin:0 auto}
+.controlsRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+.seg{display:flex;gap:6px;padding:6px;background:var(--soft);border-radius:999px;width:fit-content;max-width:100%}
 .seg button{border:none;background:transparent;padding:10px 14px;border-radius:999px;font-weight:900;cursor:pointer;white-space:nowrap}
 .seg button.active{background:var(--highlight)}
 .filterRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
@@ -36,10 +37,6 @@ main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
 .snippet{margin-top:8px;font-size:13px;color:#222;background:#fafafa;border:1px solid #eee;border-radius:12px;padding:8px 10px}
 mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-weight:900}
 .empty{padding:16px;border:1px dashed var(--border);border-radius:12px;color:#666;text-align:center}
-
-/* Debug panel */
-.debug{margin-top:12px;padding:12px;border:1px solid #eee;border-radius:12px;background:#fafafa;color:#222;font-size:12px;display:none;text-align:left}
-.debug code{white-space:pre-wrap;word-break:break-word}
 
 /* Chip filtro (icona che si espande) */
 .chipbar{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid rgba(0,0,0,.06);background:#f7f7f8;border-radius:999px;box-sizing:border-box}
@@ -69,27 +66,27 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 </head>
 <body>
 <header>
-  <h1>Cerca ordini</h1>
-  <div class="hint">Filtri stile stoccaggio + ricerca full‑text (filtro Reparti con icona).</div>
+  <!-- Lottie searching -->
+  <div id="lottie-search" aria-hidden="true" style="width:120px;height:120px;margin:0 auto 6px"></div>
+  <h1>Cerca negli Ordini</h1>
+  <div class="hint">Filtri stile stoccaggio + ricerca full-text (filtro Reparti con icona).</div>
 </header>
 
 <main>
   <div class="search">
     <input id="q" class="input" type="search" autocomplete="off" />
     <button id="go" class="btn" type="button">Cerca</button>
-    <button id="clear" class="btn secondary" type="button">Pulisci</button>
-    <button id="toggleDebug" class="btn secondary" type="button" style="background:#444">Debug</button>
-  </div>
+    <button id="clear" class="btn secondary" type="button">Pulisci</button>  </div>
 
   <div class="filters">
-    <div class="seg" role="tablist" aria-label="Selettore periodo">
-      <button data-mode="next" class="active" type="button">Prossimi</button>
-      <button data-mode="today" type="button">Oggi</button>
-      <button data-mode="tomorrow" type="button">Domani</button>
-      <button data-mode="date" type="button">Data</button>
-    </div>
+    <div class="controlsRow">
+      <div class="seg" role="tablist" aria-label="Selettore periodo">
+        <button data-mode="next" class="active" type="button">Prossimi</button>
+        <button data-mode="today" type="button">Oggi</button>
+        <button data-mode="tomorrow" type="button">Domani</button>
+        <button data-mode="date" type="button">Data</button>
+      </div>
 
-    <div class="filterRow">
       <input type="date" id="filterDate" class="input" style="display:none; max-width:260px;">
 
       <div class="chipbar compact" id="chipbar-filter" title="Filtro reparti" aria-haspopup="dialog" aria-expanded="false">
@@ -105,16 +102,14 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
         </div>
       </div>
 
-      <label class="tick" title="Nasconde ieri e date passate">
-        <input type="checkbox" id="tickFutureOnly" checked>
-        Solo oggi e futuri
+      <label class="tick" title="Se attivo, include anche gli ordini di ieri e precedenti">
+        <input type="checkbox" id="tickIncludePast">
+        Includi ordini passati
       </label>
     </div>
   </div>
 
   <div id="status" class="status"></div>
-  <div id="debug" class="debug"><b>Diagnostica API</b><div style="height:6px"></div><code id="debugText"></code></div>
-
   <div id="out" class="results">
     <div class="empty">Pronto. Seleziona periodo e/o cerca.</div>
   </div>
@@ -147,8 +142,20 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   </div>
 </div>
 
+<script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 <script>
 (() => {
+  // Lottie init (searching)
+  try{
+    lottie.loadAnimation({
+      container: document.getElementById('lottie-search'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'searching.json'
+    });
+  }catch(_){/* lottie opzionale */}
+
   // ====== CONFIG ======
   const API_URL = 'https://script.google.com/macros/s/AKfycbzp_2RNQO9ROQkpcGebBpZ9P_MyZEmxkqLh5G-ODe4Yo2x9E0aRbEQIbmofaxhod9VGFA/exec';
 
@@ -312,16 +319,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   const filterDateEl = document.getElementById('filterDate');
   const chipFilterEl = document.getElementById('chipbar-filter');
   const filterBadgeEl = document.getElementById('filter-badge');
-  const tickFutureOnlyEl = document.getElementById('tickFutureOnly');
+  const tickIncludePastEl = document.getElementById('tickIncludePast');
   const tabs = Array.from(document.querySelectorAll('.seg button'));
 
-  // Debug
-  const debugBox = document.getElementById('debug');
-  const debugText = document.getElementById('debugText');
-  document.getElementById('toggleDebug').addEventListener('click', ()=>{
-    debugBox.style.display = (debugBox.style.display === 'none' || !debugBox.style.display) ? 'block' : 'none';
-  });
-
+  
   // Modale dettaglio
   const modal = document.getElementById('modal');
   const mClose = document.getElementById('mClose');
@@ -465,13 +466,18 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   });
 
   // ===== Period logic =====
-  function enforceFutureOnlyConstraints(){
+  function enforceIncludePastConstraints(){
+    // Se NON includi il passato, impedisci di selezionare ieri o prima in modalità "Data"
     const todayKey = ymd(todayLocal());
-    if(tickFutureOnlyEl.checked){
+    if(!tickIncludePastEl.checked){
       filterDateEl.min = todayKey;
       if(PERIOD_MODE === 'date' && filterDateEl.value && filterDateEl.value < todayKey){
         filterDateEl.value = todayKey;
       }
+    } else {
+      filterDateEl.min = '';
+    }
+  }
     } else {
       filterDateEl.min = '';
     }
@@ -483,16 +489,11 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     const showDate = (mode === 'date');
     filterDateEl.style.display = showDate ? '' : 'none';
     if(showDate && !filterDateEl.value) filterDateEl.value = ymd(todayLocal());
-    enforceFutureOnlyConstraints();
+    enforceIncludePastConstraints();
     runSearch();
   }
 
   tabs.forEach(b => b.addEventListener('click', ()=>setPeriodMode(b.dataset.mode)));
-
-  // ===== Debug helpers =====
-  function writeDebug(obj){
-    debugText.textContent = JSON.stringify(obj, null, 2);
-  }
 
   function looksLikeHtml(s){
     const t = (s||'').trim().slice(0,200).toLowerCase();
@@ -539,8 +540,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
       });
       raw = await res.text();
     } catch (e){
-      writeDebug({ step: 'fetch', url, error: String(e) });
-      throw new Error('Fetch fallita (rete/CORS). Apri Debug.');
+      throw new Error('Fetch fallita (rete/CORS).');
     }
 
     const ct = (res.headers.get('content-type') || '').toLowerCase();
@@ -554,12 +554,10 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     };
 
     if(looksLikeHtml(raw)){
-      writeDebug({ ...dbg, hint: 'La risposta sembra HTML (permessi/deploy). Apps Script → Deploy → Web app → Accesso: Chiunque con link / Chiunque.' });
       throw new Error('L’API sta tornando HTML (probabile permessi/deploy).');
     }
 
     if(!res.ok){
-      writeDebug({ ...dbg, hint: 'HTTP non OK. 302/403/401: permessi. 404: URL sbagliato. 500: errore doGet.' });
       throw new Error(`HTTP ${res.status}: risposta non valida`);
     }
 
@@ -567,8 +565,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     try{
       data = extractJsonFromText(raw);
     } catch (e){
-      writeDebug({ ...dbg, parseError: String(e), hint: 'JSON non parsabile. doGet deve restituire JSON (Content-Type application/json).' });
-      throw new Error('Parse JSON fallita. Apri Debug.');
+      throw new Error('Parse JSON fallita.');
     }
 
     let rows=[];
@@ -590,13 +587,13 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     }
 
     refreshDeptOptions();
-    enforceFutureOnlyConstraints();
+    enforceIncludePastConstraints();
 
     status.innerHTML = `Ordini caricati: <b>${DATA.length}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
     const btn = document.getElementById('refreshNow');
     if(btn) btn.onclick = async ()=>{ try{ await fetchAPI(); runSearch(); } catch(e){ status.textContent = 'Errore: ' + (e.message||e); } };
 
-    writeDebug({ ...dbg, parsed: true, rowsDetected: rows.length, mappedOrders: DATA.length });
+    
   }
 
   function applyPeriodAndDeptFilters(){
@@ -607,7 +604,8 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
     let pool = DATA;
 
-    if(tickFutureOnlyEl.checked){
+    // Se NON includi ordini passati: nascondi ieri e precedenti (quindi mostra da oggi in poi)
+    if(!tickIncludePastEl.checked){
       pool = pool.filter(r => r.dateKey && r.dateKey >= todayKey);
     }
 
@@ -694,43 +692,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     });
   }
 
-  // ===== Minimal self-tests (run once) =====
-  function runSelfTests(){
-    const tests = [];
-    const assert = (name, cond, extra) => tests.push({ name, ok: !!cond, extra: extra ?? null });
-
-    // parseAnyDate
-    const d1 = parseAnyDate('15/12/2025');
-    assert('parseAnyDate dd/mm/yyyy', d1 && ymd(d1)==='2025-12-15', d1 ? ymd(d1) : null);
-    const d2 = parseAnyDate('2025-12-15');
-    assert('parseAnyDate yyyy-mm-dd', d2 && ymd(d2)==='2025-12-15', d2 ? ymd(d2) : null);
-
-    // extractJsonFromText
-    try{
-      const j = extractJsonFromText('  {"a":1}  ');
-      assert('extractJsonFromText basic', j && j.a===1, j);
-    }catch(e){
-      assert('extractJsonFromText basic', false, String(e));
-    }
-
-    // truthy + extractDepts
-    assert('truthy("SI")', truthy('SI') === true);
-    assert('truthy("si")', truthy('si') === true);
-    assert('truthy("no")', truthy('no') === false);
-    assert('truthy(0)', truthy(0) === false);
-    assert('truthy(2)', truthy(2) === true);
-
-    const sampleRow1 = { src: { REPARTI: 'Carne, Frutta e Verdura; Pesce' } };
-    const deps1 = extractDepts(sampleRow1);
-    assert('extractDepts from REPARTI', deps1.length===3 && deps1.includes('Carne') && deps1.includes('Pesce'), deps1);
-
-    const sampleRow2 = { src: { Carne: 1, 'Frutta e Verdura': 'si', Pesce: 0 } };
-    const deps2 = extractDepts(sampleRow2);
-    assert('extractDepts from dept columns (si)', deps2.includes('Carne') && deps2.includes('Frutta e Verdura') && !deps2.includes('Pesce'), deps2);
-
-    return tests;
-  }
-
+  
   // ===== Events =====
   document.getElementById('go').addEventListener('click', runSearch);
   qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
@@ -742,30 +704,19 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   });
 
   filterDateEl.addEventListener('change', runSearch);
-  tickFutureOnlyEl.addEventListener('change', ()=>{ enforceFutureOnlyConstraints(); runSearch(); });
+  tickIncludePastEl.addEventListener('change', ()=>{ enforceIncludePastConstraints(); runSearch(); }); runSearch(); });
 
   // ===== Boot =====
   (async function init(){
-    // Self-tests -> merge into debug output (non invasivo)
-    const tests = runSelfTests();
-    try{
-      const prev = debugText.textContent ? JSON.parse(debugText.textContent) : null;
-      if(prev && typeof prev === 'object') writeDebug({ ...prev, selfTests: tests });
-      else writeDebug({ selfTests: tests });
-    }catch(_){
-      writeDebug({ selfTests: tests });
-    }
-
     try{
       await fetchAPI();
-      tickFutureOnlyEl.checked = true;
+      tickIncludePastEl.checked = false;
       setPeriodMode('next');
       syncFilterChip();
       runSearch();
     } catch (err){
       status.textContent = 'Errore nel caricamento dati: ' + (err.message||err);
-      out.innerHTML = `<div class="empty">API non raggiungibile o risposta non valida. Apri Debug.</div>`;
-      debugBox.style.display = 'block';
+      out.innerHTML = `<div class="empty">API non raggiungibile o risposta non valida.</div>`;
     }
   })();
 })();
