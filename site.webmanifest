@@ -1,0 +1,17 @@
+{
+  "name": "Pedriö - filtra e cerca",
+  "short_name": "Pedriö",
+  "start_url": "/bottega-filter/index.html",
+  "scope": "/bottega-filter/",
+  "display": "standalone",
+  "background_color": "#317f43",
+  "theme_color": "#317f43",
+  "icons": [
+    {
+      "src": "/bottega-filter/pedriö.png",
+      "sizes": "800x800",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
