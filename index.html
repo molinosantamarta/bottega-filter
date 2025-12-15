@@ -4,268 +4,550 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Master – Cerca ordini</title>
-
 <style>
-/* ===== RESET + BASE ===== */
 *{box-sizing:border-box}
-html,body{
-  margin:0;
-  padding:0;
-  background:#fff;
-  color:#111;
-  font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;
-  font-size:16px;
-  line-height:1.25;
-}
+html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.25}
+:root{--accent:#0a84ff;--highlight:#ffd60a;--border:#ddd;--soft:#f4f4f6;--success:#22c55e;--radius:18px}
+header{padding:16px 16px 8px;text-align:center}
+h1{margin:0 0 6px;font-size:20px;font-weight:900}
+.hint{font-size:14px;color:#555}
+main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
+.search{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.input{flex:1;min-width:240px;padding:14px;border-radius:999px;border:1px solid var(--border);font-size:16px;background:#fff}
+.btn{padding:14px 18px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:900;cursor:pointer}
+.btn.secondary{background:#111}
+.filters{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.seg{display:flex;gap:6px;padding:6px;background:var(--soft);border-radius:999px;width:fit-content;max-width:100%;margin:0 auto}
+.seg button{border:none;background:transparent;padding:10px 14px;border-radius:999px;font-weight:900;cursor:pointer;white-space:nowrap}
+.seg button.active{background:var(--highlight)}
+.filterRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center}
+.tick{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.tick input{width:18px;height:18px;accent-color:var(--accent)}
+.status{margin-top:12px;font-size:12px;color:#555;text-align:center}
+.status .linklike{border:none;background:none;padding:0;margin-left:.25rem;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
+.results{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.order{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
+.badge{min-width:52px;height:34px;background:var(--highlight);border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.name{font-weight:900}
+.sub{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:11px;padding:4px 8px;border-radius:999px;background:var(--soft)}
+.pill.zone{background:var(--success);color:#fff}
+.snippet{margin-top:8px;font-size:13px;color:#222;background:#fafafa;border:1px solid #eee;border-radius:12px;padding:8px 10px}
+mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-weight:900}
+.empty{padding:16px;border:1px dashed var(--border);border-radius:12px;color:#666;text-align:center}
 
-/* ===== TOKENS ===== */
-:root{
-  --accent:#0a84ff;
-  --highlight:#ffd60a;
-  --border:#ddd;
-  --soft:#f4f4f6;
-  --success:#22c55e;
-  --radius:18px;
-}
+/* Debug panel */
+.debug{margin-top:12px;padding:12px;border:1px solid #eee;border-radius:12px;background:#fafafa;color:#222;font-size:12px;display:none;text-align:left}
+.debug code{white-space:pre-wrap;word-break:break-word}
 
-/* ===== LAYOUT ===== */
-header{
-  padding:16px 16px 8px;
-}
-h1{
-  margin:0 0 6px;
-  font-size:20px;
-  font-weight:900;
-}
-.hint{
-  font-size:14px;
-  color:#555;
-}
-
-main{
-  padding:12px 16px 24px;
-  max-width:1100px;
-  margin:0 auto;
-}
-
-/* ===== SEARCH ===== */
-.search{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:10px;
-}
-.input{
-  flex:1;
-  min-width:240px;
-  padding:14px;
-  border-radius:999px;
-  border:1px solid var(--border);
-  font-size:16px;
-}
-.btn{
-  padding:14px 18px;
-  border-radius:999px;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-.btn.secondary{
-  background:#111;
-}
-
-/* ===== PERIOD SELECTOR (stoccaggio-style) ===== */
-.filters{
-  margin-top:14px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.seg{
-  display:flex;
-  gap:6px;
-  padding:6px;
-  background:var(--soft);
-  border-radius:999px;
-  width:fit-content;
-}
-.seg button{
-  border:none;
-  background:transparent;
-  padding:10px 14px;
-  border-radius:999px;
-  font-weight:900;
-  cursor:pointer;
-}
-.seg button.active{
-  background:var(--highlight);
-}
-
-/* ===== SECOND ROW ===== */
-.filterRow{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  align-items:center;
-}
-.tick{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:14px;
-  font-weight:700;
-}
-.tick input{
-  width:18px;
-  height:18px;
-}
-
-/* ===== RESULTS ===== */
-.results{
-  margin-top:18px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.order{
-  display:flex;
-  gap:12px;
-  padding:12px;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  cursor:pointer;
-}
-.badge{
-  min-width:52px;
-  height:34px;
-  background:var(--highlight);
-  border-radius:999px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-}
-.name{
-  font-weight:900;
-}
-.sub{
-  margin-top:6px;
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
-}
-.pill{
-  font-size:11px;
-  padding:4px 8px;
-  border-radius:999px;
-  background:var(--soft);
-}
-.pill.zone{
-  background:var(--success);
-  color:#fff;
-}
-.empty{
-  padding:16px;
-  border:1px dashed var(--border);
-  border-radius:12px;
-  color:#666;
-  text-align:center;
-}
-
-/* ===== MODAL ===== */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-}
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:2147483647}
 .modal.open{display:block}
-.sheet{
-  background:#fff;
-  width:100%;
-  height:100%;
-  padding:16px;
-  overflow:auto;
-}
-.close{
-  border:none;
-  background:#111;
-  color:#fff;
-  border-radius:999px;
-  padding:8px 14px;
-  font-weight:900;
-}
+.sheet{background:#fff;width:100%;height:100%;padding:16px;overflow:auto}
+.close{border:none;background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-weight:900;cursor:pointer}
+.modalTitle{margin:14px 0 6px;font-size:22px;font-weight:900}
+.modalSub{margin:0 0 12px;color:#555;font-size:14px}
+.kv{width:100%;border-collapse:collapse}
+.kv th,.kv td{text-align:left;padding:10px 8px;border-bottom:1px solid #f1f1f1;font-size:15px;vertical-align:top}
+.kv th{width:36%;color:#444;font-weight:900}
+.kv tr.hl{background:rgba(255,214,10,.18)}
 </style>
 </head>
-
 <body>
-
 <header>
   <h1>Cerca ordini</h1>
-  <div class="hint">Stesso filtro di stoccaggio, ricerca full-text sugli ordini.</div>
+  <div class="hint">Filtri stile stoccaggio + ricerca full-text.</div>
 </header>
 
 <main>
-
-  <!-- SEARCH -->
   <div class="search">
-    <input id="q" class="input" placeholder="Cerca prodotto, nota, cliente…" />
-    <button id="go" class="btn">Cerca</button>
-    <button id="clear" class="btn secondary">Pulisci</button>
+    <input id="q" class="input" type="search" autocomplete="off" />
+    <button id="go" class="btn" type="button">Cerca</button>
+    <button id="clear" class="btn secondary" type="button">Pulisci</button>
+    <button id="toggleDebug" class="btn secondary" type="button" style="background:#444">Debug</button>
   </div>
 
-  <!-- FILTERS -->
   <div class="filters">
-    <div class="seg">
-      <button data-mode="next" class="active">Prossimi</button>
-      <button data-mode="today">Oggi</button>
-      <button data-mode="tomorrow">Domani</button>
-      <button data-mode="date">Data</button>
+    <div class="seg" role="tablist" aria-label="Selettore periodo">
+      <button data-mode="next" class="active" type="button">Prossimi</button>
+      <button data-mode="today" type="button">Oggi</button>
+      <button data-mode="tomorrow" type="button">Domani</button>
+      <button data-mode="date" type="button">Data</button>
     </div>
 
     <div class="filterRow">
-      <input type="date" id="filterDate" class="input" style="display:none">
-      <select id="filterZone" class="input">
+      <input type="date" id="filterDate" class="input" style="display:none; max-width:260px;">
+      <select id="filterZone" class="input" style="max-width:260px;">
         <option value="">Tutte le zone</option>
       </select>
 
-      <label class="tick">
+      <label class="tick" title="Nasconde ieri e date passate">
         <input type="checkbox" id="tickFutureOnly" checked>
         Solo oggi e futuri
       </label>
     </div>
   </div>
 
-  <!-- RESULTS -->
-  <div id="out" class="results">
-    <div class="empty">Pronto. Seleziona il periodo e cerca.</div>
-  </div>
+  <div id="status" class="status"></div>
+  <div id="debug" class="debug"><b>Diagnostica API</b><div style="height:6px"></div><code id="debugText"></code></div>
 
+  <div id="out" class="results">
+    <div class="empty">Pronto. Seleziona periodo e/o cerca.</div>
+  </div>
 </main>
 
-<!-- MODAL -->
-<div id="modal" class="modal">
+<div id="modal" class="modal" aria-hidden="true" role="dialog">
   <div class="sheet">
-    <button class="close" onclick="closeModal()">Chiudi</button>
-    <pre id="modalContent"></pre>
+    <button class="close" id="mClose" type="button">Chiudi</button>
+    <div class="modalTitle" id="mTitle">Dettaglio ordine</div>
+    <div class="modalSub" id="mSub"></div>
+    <table class="kv" id="mTable"></table>
   </div>
 </div>
 
 <script>
-/* 
-JS identico alla versione precedente:
-– filtri periodo (prossimi / oggi / domani / data)
-– tick “solo oggi e futuri”
-– ricerca full-text
-– mapping API
-Per brevità non lo ripeto qui: 
-COPIA ESATTAMENTE LO SCRIPT DELL’ULTIMA VERSIONE,
-funziona senza modifiche con questo layout.
-*/
-</script>
+(function(){
+  // ====== CONFIG ======
+  // Se "non funziona", al 90% è uno di questi:
+  // 1) Web App Apps Script non è "Chiunque" (o almeno "Chiunque con link")
+  // 2) URL è quello di EDITOR o di "exec" non della DEPLOY corretta
+  // 3) doGet restituisce HTML o redirect invece che JSON
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzp_2RNQO9ROQkpcGebBpZ9P_MyZEmxkqLh5G-ODe4Yo2x9E0aRbEQIbmofaxhod9VGFA/exec';
 
+  // ===== Utils =====
+  const esc = (s) => String(s ?? '').replace(/[&<>\"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]||m));
+  const norm = (s) => (s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/\p{Diacritic}/gu,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  const pad2 = n => String(n).padStart(2,'0');
+  const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  const ddmmyyyy = d => `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`;
+
+  function todayLocal(){ const d=new Date(); d.setHours(12,0,0,0); return d; }
+
+  function parseAnyDate(s){
+    if(!s) return null;
+    const str = String(s).trim();
+    let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if(m){
+      const dd=+m[1], mm=+m[2]-1, yy=+m[3];
+      return new Date(yy<100?2000+yy:yy, mm, dd, 12,0,0);
+    }
+    m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) return new Date(+m[1], +m[2]-1, +m[3], 12,0,0);
+    const d = new Date(str);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const pickKey = (obj, cands) => {
+    const ks = Object.keys(obj||{});
+    for(const c of cands){ const k = ks.find(x => norm(x) === norm(c)); if(k) return k; }
+    for(const c of cands){ const k = ks.find(x => norm(x).includes(norm(c))); if(k) return k; }
+    return null;
+  };
+
+  function mapRowsFromAPI(rows){
+    const out=[];
+    for(const r of (rows||[])){
+      if(!r || typeof r !== 'object') continue;
+      const nameKey = pickKey(r,['NOME CLIENTE','NOME','CLIENTE']);
+      const dateKeyRaw = pickKey(r,['DATA ORDINE','DATA','GIORNO','DATA RITIRO','RITIRO']);
+      const timeKey = pickKey(r,['ORA','ORARIO']);
+      const zoneKey = pickKey(r,['ZONA STOCCAGGIO','ZONA','STOCCAGGIO','UBICAZIONE']);
+      const ordKey  = pickKey(r,['NUMERO ORDINE','ORDINE','N° ORDINE','ORD']);
+
+      const name = nameKey ? String(r[nameKey]||'').trim() : '';
+      if(!name) continue;
+
+      const d = dateKeyRaw ? parseAnyDate(r[dateKeyRaw]) : null;
+      const time = timeKey ? String(r[timeKey]||'').trim() : '';
+      const zone = zoneKey ? String(r[zoneKey]||'').trim() : '';
+      const ordRaw = ordKey ? r[ordKey] : r.ord;
+      const ord = (ordRaw!=null && ordRaw!=='') ? Number(ordRaw) : null;
+
+      out.push({
+        ord: Number.isFinite(ord) ? ord : null,
+        name,
+        dateObj: d,
+        dateKey: d ? ymd(d) : null,
+        dateText: d ? ddmmyyyy(d) : '',
+        time,
+        zone,
+        src: r
+      });
+    }
+    return out;
+  }
+
+  function buildSearchBlob(row){
+    const parts = [];
+    parts.push(row.ord!=null ? String(row.ord) : '');
+    parts.push(row.name||'');
+    parts.push(row.dateText||'');
+    parts.push(row.time||'');
+    parts.push(row.zone||'');
+    for(const [k,v] of Object.entries(row.src||{})){
+      parts.push(String(k));
+      if(v==null) continue;
+      parts.push(typeof v === 'string' ? v : JSON.stringify(v));
+    }
+    return norm(parts.join(' • '));
+  }
+
+  function extractNotes(row){
+    const k = pickKey(row.src||{}, ['NOTE SULL\'ORDINE','NOTE SULL ORDINE','NOTE','ANNOTAZIONI','RICHIESTE SPECIALI','RICHIESTE','ALLERGIE']);
+    return k ? String(row.src[k]||'').trim() : '';
+  }
+
+  function extractItemsText(row){
+    const lines=[];
+    for(const [k,v] of Object.entries(row.src||{})){
+      const kk = String(k||'');
+      if(/^\s*\d+\)\s*/.test(kk)){
+        const val = String(v??'').trim();
+        if(val && val!=='0') lines.push(`${kk} ${val}`);
+      }
+    }
+    return lines.join(' • ').trim();
+  }
+
+  function highlightSnippet(text, qNorm){
+    if(!qNorm) return '';
+    const raw = String(text||'');
+    const n = norm(raw);
+    const idx = n.indexOf(qNorm);
+    if(idx < 0) return '';
+    const left = Math.max(0, idx - 60);
+    const right = Math.min(raw.length, idx + 60);
+    const slice = raw.slice(left, right);
+    const re = new RegExp(qNorm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'ig');
+    return esc(slice).replace(re, (m)=>`<mark>${esc(m)}</mark>`);
+  }
+
+  // ===== UI =====
+  const out = document.getElementById('out');
+  const status = document.getElementById('status');
+  const qEl = document.getElementById('q');
+  const filterDateEl = document.getElementById('filterDate');
+  const filterZoneEl = document.getElementById('filterZone');
+  const tickFutureOnlyEl = document.getElementById('tickFutureOnly');
+  const tabs = Array.from(document.querySelectorAll('.seg button'));
+
+  const debugBox = document.getElementById('debug');
+  const debugText = document.getElementById('debugText');
+  document.getElementById('toggleDebug').addEventListener('click', ()=>{
+    debugBox.style.display = (debugBox.style.display === 'none' || !debugBox.style.display) ? 'block' : 'none';
+  });
+
+  let PERIOD_MODE = 'next';
+  let DATA = [];
+
+  // Modal
+  const modal = document.getElementById('modal');
+  const mClose = document.getElementById('mClose');
+  const mTitle = document.getElementById('mTitle');
+  const mSub = document.getElementById('mSub');
+  const mTable = document.getElementById('mTable');
+
+  function openModal(row, qNorm){
+    mTitle.textContent = row.name || 'Dettaglio ordine';
+    mSub.textContent = [
+      row.ord ? `Ordine #${row.ord}` : null,
+      row.dateText || null,
+      row.time || null,
+      row.zone ? `Zona: ${row.zone}` : null
+    ].filter(Boolean).join(' • ');
+
+    const entries = Object.entries(row.src||{});
+    const skipKeys = new Set([
+      'ord','numero ordine (parsed)','ora (parsed)','zona (parsed)',
+      'nome','nome cliente','cliente','data','giorno','data ordine','data ritiro','ritiro','ora','orario'
+    ].map(k=>norm(k)));
+
+    let seenItemsStart=false;
+    const rowsHtml = entries
+      .filter(([k,_])=>!skipKeys.has(norm(String(k))))
+      .map(([k,v])=>{
+        const keyStr = String(k).trim();
+        const valStr = (v==null)? '' : String(v).trim();
+        if(/^\s*1\)\s*/i.test(keyStr)) seenItemsStart=true;
+        const shouldHL = seenItemsStart && valStr!=='' && valStr!=='0';
+        const matchHL = qNorm && (norm(keyStr+' '+valStr).includes(qNorm));
+        return `<tr class="${(shouldHL||matchHL)?'hl':''}"><th>${esc(keyStr)}</th><td>${esc(valStr)}</td></tr>`;
+      }).join('');
+
+    mTable.innerHTML = rowsHtml || `<tr><td>Nessun dettaglio</td></tr>`;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+  }
+
+  function closeModal(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+  }
+
+  mClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('open')) closeModal(); });
+
+  function refreshZoneOptions(){
+    const current = filterZoneEl.value || '';
+    const zones = Array.from(new Set(DATA.map(r => (r.zone||'').trim()).filter(Boolean)))
+      .sort((a,b)=>a.localeCompare(b,'it',{sensitivity:'base'}));
+
+    filterZoneEl.innerHTML = `<option value="">Tutte le zone</option>` +
+      zones.map(z => `<option value="${esc(z)}">${esc(z)}</option>`).join('');
+
+    if(current){
+      const opt = Array.from(filterZoneEl.options).find(o => norm(o.value) === norm(current));
+      if(opt) filterZoneEl.value = opt.value;
+    }
+  }
+
+  function enforceFutureOnlyConstraints(){
+    const todayKey = ymd(todayLocal());
+    if(tickFutureOnlyEl.checked){
+      filterDateEl.min = todayKey;
+      if(PERIOD_MODE === 'date' && filterDateEl.value && filterDateEl.value < todayKey){
+        filterDateEl.value = todayKey;
+      }
+    }else{
+      filterDateEl.min = '';
+    }
+  }
+
+  function setPeriodMode(mode){
+    PERIOD_MODE = mode;
+    tabs.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    const showDate = (mode === 'date');
+    filterDateEl.style.display = showDate ? '' : 'none';
+    if(showDate && !filterDateEl.value) filterDateEl.value = ymd(todayLocal());
+    enforceFutureOnlyConstraints();
+    runSearch();
+  }
+  tabs.forEach(b => b.addEventListener('click', ()=>setPeriodMode(b.dataset.mode)));
+
+  // ===== Robust JSON parsing + debug =====
+  function writeDebug(obj){
+    debugText.textContent = JSON.stringify(obj, null, 2);
+  }
+
+  function looksLikeHtml(s){
+    const t = (s||'').trim().slice(0,200).toLowerCase();
+    return t.startsWith('<!doctype') || t.startsWith('<html') || t.includes('<head') || t.includes('<body');
+  }
+
+  function extractJsonFromText(raw){
+    const text = (raw||'').trim();
+    if(!text) throw new Error('Risposta vuota');
+    if(text.startsWith('{') || text.startsWith('[')) return JSON.parse(text);
+    // alcuni proxy / GAS possono aggiungere testo prima del JSON
+    const s = text.search(/[\[{]/);
+    const eB = text.lastIndexOf('}');
+    const eA = text.lastIndexOf(']');
+    const e = Math.max(eB, eA);
+    if(s !== -1 && e > s) return JSON.parse(text.slice(s, e+1));
+    throw new Error('Non trovo JSON nella risposta');
+  }
+
+  async function fetchAPI(){
+    const url = API_URL + (API_URL.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+    status.textContent = 'Carico ordini…';
+
+    let res, raw;
+    try{
+      res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-store',
+        redirect: 'follow',
+        credentials: 'omit',
+        headers: { 'Accept': 'application/json, text/plain, */*' }
+      });
+      raw = await res.text();
+    } catch (e){
+      writeDebug({ step: 'fetch', url, error: String(e) });
+      throw new Error('Fetch fallita (rete/CORS). Apri Debug.');
+    }
+
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    const dbg = {
+      url,
+      ok: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      contentType: ct,
+      sample: (raw||'').slice(0, 800)
+    };
+
+    if(looksLikeHtml(raw)){
+      writeDebug({ ...dbg, hint: 'La risposta sembra HTML (permessi o deploy non pubblico). Verifica: Apps Script → Deploy → Web app → Accesso: Chiunque con link / Chiunque.' });
+      throw new Error('L’API sta tornando HTML (probabile permessi/deploy).');
+    }
+
+    if(!res.ok){
+      writeDebug({ ...dbg, hint: 'HTTP non OK. Se 302/403/401: permessi. Se 404: URL sbagliato. Se 500: errore doGet.' });
+      throw new Error(`HTTP ${res.status}: risposta non valida`);
+    }
+
+    let data;
+    try{
+      data = extractJsonFromText(raw);
+    } catch (e){
+      writeDebug({ ...dbg, parseError: String(e), hint: 'JSON non parsabile. Controlla cosa stampa doGet (deve essere JSON con Content-Type application/json).' });
+      throw new Error('Parse JSON fallita. Apri Debug.');
+    }
+
+    // normalizzazione shape
+    let rows=[];
+    if(Array.isArray(data)) rows=data;
+    else if(Array.isArray(data.rows)) rows=data.rows;
+    else if(Array.isArray(data.data)) rows=data.data;
+    else if(data && typeof data==='object'){
+      const k = Object.keys(data).find(x=>Array.isArray(data[x]) && (data[x].length===0 || typeof data[x][0]==='object'));
+      if(k) rows=data[k];
+    }
+    if(!Array.isArray(rows)) rows=[];
+
+    DATA = mapRowsFromAPI(rows);
+    for(const r of DATA){
+      r.__blobAll = buildSearchBlob(r);
+      r.__notesRaw = extractNotes(r);
+      r.__itemsRaw = extractItemsText(r);
+    }
+    refreshZoneOptions();
+    enforceFutureOnlyConstraints();
+
+    status.innerHTML = `Ordini caricati: <b>${DATA.length}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
+    const btn = document.getElementById('refreshNow');
+    if(btn) btn.onclick = async ()=>{ try{ await fetchAPI(); runSearch(); } catch(e){ status.textContent = 'Errore: ' + (e.message||e); } };
+
+    writeDebug({ ...dbg, parsed: true, rowsDetected: rows.length, mappedOrders: DATA.length });
+  }
+
+  function applyPeriodAndZoneFilters(){
+    const t = todayLocal();
+    const todayKey = ymd(t);
+    const tom = new Date(t); tom.setDate(t.getDate()+1);
+    const tomorrowKey = ymd(tom);
+
+    const selectedZone = norm(filterZoneEl.value || '');
+    let pool = DATA;
+
+    if(tickFutureOnlyEl.checked){
+      pool = pool.filter(r => r.dateKey && r.dateKey >= todayKey);
+    }
+
+    if(PERIOD_MODE === 'next'){
+      pool = pool.filter(r => r.dateKey && r.dateKey >= todayKey);
+    }else if(PERIOD_MODE === 'today'){
+      pool = pool.filter(r => r.dateKey === todayKey);
+    }else if(PERIOD_MODE === 'tomorrow'){
+      pool = pool.filter(r => r.dateKey === tomorrowKey);
+    }else if(PERIOD_MODE === 'date'){
+      const sel = (filterDateEl.value || '').trim();
+      if(sel) pool = pool.filter(r => r.dateKey === sel);
+    }
+
+    if(selectedZone){
+      pool = pool.filter(r => norm(r.zone).includes(selectedZone));
+    }
+
+    return { pool, todayKey, tomorrowKey };
+  }
+
+  function runSearch(){
+    const q = norm(qEl.value);
+    const { pool } = applyPeriodAndZoneFilters();
+
+    const hits = q ? pool.filter(r => r.__blobAll && r.__blobAll.includes(q)) : pool.slice();
+
+    if(hits.length===0){
+      out.innerHTML = `<div class="empty">Nessun ordine nel periodo selezionato.</div>`;
+      return;
+    }
+
+    hits.sort((a,b)=>{
+      if(q){
+        const an = norm(a.__notesRaw||'').includes(q) ? 1 : 0;
+        const bn = norm(b.__notesRaw||'').includes(q) ? 1 : 0;
+        if(an!==bn) return bn-an;
+      }
+      const ad = a.dateKey || '';
+      const bd = b.dateKey || '';
+      if(ad!==bd) return ad.localeCompare(bd);
+      return (b.ord||0) - (a.ord||0);
+    });
+
+    out.innerHTML = hits.map(r=>{
+      const num = r.ord!=null ? r.ord : '—';
+      const pills = [
+        r.dateText ? `<span class="pill">${esc(r.dateText)}</span>` : '',
+        r.time ? `<span class="pill">${esc(r.time)}</span>` : '',
+        r.zone ? `<span class="pill zone">${esc(r.zone)}</span>` : ''
+      ].filter(Boolean).join('');
+
+      let snippet = '';
+      if(q){
+        const s1 = highlightSnippet(r.__notesRaw || '', q);
+        const s2 = highlightSnippet(r.__itemsRaw || '', q);
+        snippet = s1 || s2;
+      }
+
+      return `
+        <div class="order" tabindex="0" role="button">
+          <div class="badge">${esc(num)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="name">${esc(r.name)}</div>
+            <div class="sub">${pills}</div>
+            ${snippet ? `<div class="snippet">${snippet}</div>` : ``}
+          </div>
+        </div>`;
+    }).join('');
+
+    Array.from(out.querySelectorAll('.order')).forEach((card, idx)=>{
+      const row = hits[idx];
+      card.addEventListener('click', ()=>openModal(row, norm(qEl.value)));
+      card.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter' || e.key===' '){
+          e.preventDefault();
+          openModal(row, norm(qEl.value));
+        }
+      });
+    });
+  }
+
+  // Events
+  document.getElementById('go').addEventListener('click', runSearch);
+  qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
+
+  document.getElementById('clear').addEventListener('click', ()=>{
+    qEl.value = '';
+    runSearch();
+    qEl.focus();
+  });
+
+  filterZoneEl.addEventListener('change', runSearch);
+  filterDateEl.addEventListener('change', runSearch);
+  tickFutureOnlyEl.addEventListener('change', ()=>{ enforceFutureOnlyConstraints(); runSearch(); });
+
+  // Boot
+  (async function init(){
+    try{
+      await fetchAPI();
+      tickFutureOnlyEl.checked = true;
+      setPeriodMode('next');
+      runSearch();
+    } catch (err){
+      status.textContent = 'Errore nel caricamento dati: ' + (err.message||err);
+      out.innerHTML = `<div class="empty">API non raggiungibile o risposta non valida. Apri Debug.</div>`;
+      debugBox.style.display = 'block';
+    }
+  })();
+})();
+</script>
 </body>
 </html>
