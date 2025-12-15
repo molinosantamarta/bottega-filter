@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Flitra tra gli Ordini</title>
+<title>Master – Cerca negli Ordini</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#111;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.25}
@@ -29,6 +29,9 @@ main{padding:12px 16px 24px;max-width:1100px;margin:0 auto}
 .tick input{width:18px;height:18px;accent-color:var(--accent)}
 
 .status{margin-top:12px;font-size:12px;color:#555;text-align:center}
+.errorBox{display:none;margin:10px auto 0;max-width:900px;text-align:left;background:#fff5f5;border:1px solid #ffd6d6;border-radius:14px;padding:10px 12px;color:#8a1f1f;font-size:12px}
+.errorBox pre{margin:8px 0 0;white-space:pre-wrap;word-break:break-word;color:#5c1515}
+.errorBox b{display:block;margin-bottom:4px}
 .status .linklike{border:none;background:none;padding:0;margin-left:.25rem;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
 
 .results{margin-top:18px;display:flex;flex-direction:column;gap:10px}
@@ -71,22 +74,20 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 </head>
 <body>
 <header>
-  <div id="lottie-search" aria-hidden="true" style="width:300px;height:300px;margin:0 auto 6px"></div>
-  <h1>Cerca tra gli Ordini</h1>
-  <div class="hint">Filtra un prodotto specifico tra gli ordini, ottieni ciò che ti serve. </div>
+  <div id="lottie-search" aria-hidden="true" style="width:120px;height:120px;margin:0 auto 6px"></div>
+  <h1>Cerca negli Ordini</h1>
+  <div class="hint">Cerca il prodotto su cui vuoi avere più info</div>
 </header>
 
 <main>
   <div class="search">
     <input id="q" class="input" type="search" autocomplete="off" />
-    <button id="go" class="btn" type="button">Cerca</button>
-    <button id="clear" class="btn secondary" type="button">Pulisci</button>
   </div>
 
   <div class="filters">
     <div class="controlsRow">
       <div class="seg" role="tablist" aria-label="Selettore periodo">
-        <button data-mode="next" class="active" type="button">Prossimi</button>
+        <button data-mode="next" class="active" type="button">Tutti</button>
         <button data-mode="today" type="button">Oggi</button>
         <button data-mode="tomorrow" type="button">Domani</button>
         <button data-mode="date" type="button">Data</button>
@@ -115,6 +116,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   </div>
 
   <div id="status" class="status"></div>
+  <div id="errorBox" class="errorBox"><b>Errore caricamento</b><div id="errorMsg"></div><pre id="errorDetails"></pre></div>
   <div id="out" class="results">
     <div class="empty">Pronto. Seleziona periodo e/o cerca.</div>
   </div>
@@ -150,6 +152,28 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 <script>
 (() => {
+  // Fail-safe: mostra errori JS (utile se i selettori "non vanno" perché lo script si ferma)
+  const __showRuntimeError = (title, detail) => {
+    try{
+      const eb = document.getElementById('errorBox');
+      const em = document.getElementById('errorMsg');
+      const ed = document.getElementById('errorDetails');
+      if(!eb || !em || !ed) return;
+      eb.style.display = 'block';
+      em.textContent = title;
+      ed.textContent = detail || '';
+    }catch(_){/* ignore */}
+  };
+  window.addEventListener('error', (e)=>{
+    const msg = e?.message || 'Errore JavaScript';
+    const where = `${e?.filename||''}:${e?.lineno||''}:${e?.colno||''}`;
+    __showRuntimeError(msg, where);
+  });
+  window.addEventListener('unhandledrejection', (e)=>{
+    const reason = e?.reason?.message || String(e?.reason||'Promise rejection');
+    __showRuntimeError('Errore Promise', reason);
+  });
+
   // Lottie init
   try{
     lottie.loadAnimation({
@@ -337,6 +361,9 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   // ===== UI =====
   const out = document.getElementById('out');
   const status = document.getElementById('status');
+  const errorBox = document.getElementById('errorBox');
+  const errorMsg = document.getElementById('errorMsg');
+  const errorDetails = document.getElementById('errorDetails');
   const qEl = document.getElementById('q');
   const filterDateEl = document.getElementById('filterDate');
   const chipFilterEl = document.getElementById('chipbar-filter');
@@ -359,6 +386,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
   const fClear = document.getElementById('fClear');
 
   let PERIOD_MODE = 'next';
+  let LAST_FETCH = { url:'', status:0, ok:false, raw:'' };
   let DATA = [];
   let SELECTED_DEPTS = new Set();
   let PENDING_DEPTS = new Set();
@@ -468,7 +496,15 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     chipFilterEl.setAttribute('aria-expanded','false');
   }
 
-  chipFilterEl.addEventListener('click', openFilterModal);
+  chipFilterEl.addEventListener('click', ()=>{
+    try{ openFilterModal(); }
+    catch(e){
+      const msg = e?.message || String(e);
+      errorBox.style.display = 'block';
+      errorMsg.textContent = 'Errore filtro reparti';
+      errorDetails.textContent = msg;
+    }
+  });
   fClose.addEventListener('click', closeFilterModal);
   filterModal.addEventListener('click', (e)=>{ if(e.target === filterModal) closeFilterModal(); });
 
@@ -486,7 +522,6 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
   // ===== Period logic =====
   function enforceIncludePastConstraints(){
-    // Se NON includi il passato, impedisci di selezionare ieri o prima in modalità "Data"
     const todayKey = ymd(todayLocal());
     if(!tickIncludePastEl.checked){
       filterDateEl.min = todayKey;
@@ -508,7 +543,15 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     runSearch();
   }
 
-  tabs.forEach(b => b.addEventListener('click', ()=>setPeriodMode(b.dataset.mode)));
+  tabs.forEach(b => b.addEventListener('click', ()=>{
+    try{ setPeriodMode(b.dataset.mode); }
+    catch(e){
+      const msg = e?.message || String(e);
+      errorBox.style.display = 'block';
+      errorMsg.textContent = 'Errore selettore periodo';
+      errorDetails.textContent = msg;
+    }
+  }));
 
   function refreshDeptOptions(){
     const set = new Set();
@@ -524,6 +567,9 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
 
   async function fetchAPI(){
     const url = API_URL + (API_URL.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+    errorBox.style.display = 'none';
+    errorMsg.textContent = '';
+    errorDetails.textContent = '';
     status.textContent = 'Carico ordini…';
 
     let res, raw;
@@ -537,6 +583,7 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
         headers: { 'Accept': 'application/json, text/plain, */*' }
       });
       raw = await res.text();
+      LAST_FETCH = { url, status: res.status, ok: res.ok, raw: String(raw||'') };
     } catch (_e){
       throw new Error('Fetch fallita (rete/CORS).');
     }
@@ -550,11 +597,8 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     }
 
     let data;
-    try{
-      data = extractJsonFromText(raw);
-    } catch (_e){
-      throw new Error('Parse JSON fallita.');
-    }
+    try{ data = extractJsonFromText(raw); }
+    catch(_e){ throw new Error('Parse JSON fallita.'); }
 
     let rows=[];
     if(Array.isArray(data)) rows=data;
@@ -577,11 +621,18 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     refreshDeptOptions();
     enforceIncludePastConstraints();
 
-    status.innerHTML = `Ordini caricati: <b>${DATA.length}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
+    status.innerHTML = `Ordini caricati: <b>${DATA.length + 1}</b> • <button class="linklike" id="refreshNow" type="button">aggiorna</button>`;
     const btn = document.getElementById('refreshNow');
     if(btn) btn.onclick = async ()=>{
       try{ await fetchAPI(); runSearch(); }
-      catch(e){ status.textContent = 'Errore: ' + (e.message||e); }
+      catch(e){
+        const msg = (e && (e.message||String(e))) || 'Errore sconosciuto';
+        status.textContent = 'Errore nel caricamento dati.';
+        errorBox.style.display = 'block';
+        errorMsg.textContent = msg;
+        const sample = (LAST_FETCH.raw||'').slice(0, 400);
+        errorDetails.textContent = `URL: ${LAST_FETCH.url || '(n/d)'}\nHTTP: ${LAST_FETCH.status || '(n/d)'}\nRisposta (inizio):\n${sample}`;
+      }
     };
   }
 
@@ -681,46 +732,42 @@ mark{background:rgba(255,214,10,.55);padding:0 .15em;border-radius:.25em;font-we
     });
   }
 
-  // ===== Minimal self-tests (non bloccanti) =====
-  function runSelfTests(){
-    const ok = (name, cond) => ({ name, ok: !!cond });
-    const t = todayLocal();
-    return [
-      ok('truthy si', truthy('si') === true),
-      ok('truthy no', truthy('no') === false),
-      ok('ymd format', /^\d{4}-\d{2}-\d{2}$/.test(ymd(t))),
-      ok('parseAnyDate dd/mm/yyyy', !!parseAnyDate('15/12/2025')),
-      ok('parseAnyDate yyyy-mm-dd', !!parseAnyDate('2025-12-15')),
-    ];
-  }
-
   // ===== Events =====
-  document.getElementById('go').addEventListener('click', runSearch);
-  qEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
-
-  document.getElementById('clear').addEventListener('click', ()=>{
-    qEl.value = '';
-    runSearch();
-    qEl.focus();
+  qEl.addEventListener('input', ()=>{ runSearch(); });
+  filterDateEl.addEventListener('change', ()=>{
+    try{ runSearch(); }
+    catch(e){
+      errorBox.style.display='block';
+      errorMsg.textContent='Errore selettore data';
+      errorDetails.textContent=e?.message||String(e);
+    }
   });
-
-  filterDateEl.addEventListener('change', runSearch);
-  tickIncludePastEl.addEventListener('change', ()=>{ enforceIncludePastConstraints(); runSearch(); });
+  tickIncludePastEl.addEventListener('change', ()=>{
+    try{ enforceIncludePastConstraints(); runSearch(); }
+    catch(e){
+      errorBox.style.display='block';
+      errorMsg.textContent='Errore checkbox';
+      errorDetails.textContent=e?.message||String(e);
+    }
+  });
 
   // ===== Boot =====
   (async function init(){
-    // self tests (solo console)
-    try{ console.table(runSelfTests()); }catch(_){/* ignore */}
-
     try{
       await fetchAPI();
       tickIncludePastEl.checked = false;
       setPeriodMode('next');
       syncFilterChip();
       runSearch();
+      qEl.focus();
     } catch (err){
-      status.textContent = 'Errore nel caricamento dati: ' + (err.message||err);
+      const msg = (err && (err.message||String(err))) || 'Errore sconosciuto';
+      status.textContent = 'Errore nel caricamento dati.';
       out.innerHTML = `<div class="empty">API non raggiungibile o risposta non valida.</div>`;
+      errorBox.style.display = 'block';
+      errorMsg.textContent = msg;
+      const sample = (LAST_FETCH.raw||'').slice(0, 400);
+      errorDetails.textContent = `URL: ${LAST_FETCH.url || '(n/d)'}\nHTTP: ${LAST_FETCH.status || '(n/d)'}\nRisposta (inizio):\n${sample}`;
     }
   })();
 })();
